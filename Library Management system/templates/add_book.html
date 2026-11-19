@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}Edit Book: {{ book.title }}{% else %}Add New Book{% endif %}{% endblock %}
+{% block page_heading %}{% if is_edit %}Edit Book{% else %}Add New Book to Inventory{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card-custom">
+        <div class="card-header bg-light">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-journal-plus text-primary fs-5"></i>
+            <span class="fw-bold">{% if is_edit %}Update Book Details (ID: #{{ book.id }}){% else %}New Book Information{% endif %}</span>
+          </div>
+          <a href="{{ url_for('books') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Back to Inventory
+          </a>
+        </div>
+
+        <div class="card-body p-4">
+          <form method="POST" action="{% if is_edit %}{{ url_for('edit_book', id=book.id) }}{% else %}{{ url_for('add_book') }}{% endif %}">
+            
+            <div class="row g-3">
+              <!-- Book Title -->
+              <div class="col-12">
+                <label for="title" class="form-label">Book Title <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="title" name="title" required
+                       placeholder="e.g. Clean Code: Agile Software Craftsmanship"
+                       value="{% if is_edit %}{{ book.title }}{% endif %}">
+              </div>
+
+              <!-- Author & ISBN -->
+              <div class="col-md-6">
+                <label for="author" class="form-label">Author(s) <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="author" name="author" required
+                       placeholder="e.g. Robert C. Martin"
+                       value="{% if is_edit %}{{ book.author }}{% endif %}">
+              </div>
+
+              <div class="col-md-6">
+                <label for="isbn" class="form-label">ISBN Number <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="isbn" name="isbn" required
+                       placeholder="e.g. 978-0132350884"
+                       value="{% if is_edit %}{{ book.isbn }}{% endif %}">
+                <div class="form-text">Must be unique for each book.</div>
+              </div>
+
+              <!-- Category & Publisher -->
+              <div class="col-md-6">
+                <label for="category" class="form-label">Category / Subject <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="category" name="category" list="categoryOptions" required
+                       placeholder="Select or enter category"
+                       value="{% if is_edit %}{{ book.category }}{% endif %}">
+                <datalist id="categoryOptions">
+                  <option value="Computer Science">
+                  <option value="Information Technology">
+                  <option value="Software Engineering">
+                  <option value="Artificial Intelligence">
+                  <option value="Database Systems">
+                  <option value="Networking">
+                  <option value="Programming">
+                  <option value="Mathematics">
+                  <option value="Physics">
+                  <option value="Literature">
+                  <option value="History & Philosophy">
+                  <option value="Business & Finance">
+                </datalist>
+              </div>
+
+              <div class="col-md-6">
+                <label for="publisher" class="form-label">Publisher</label>
+                <input type="text" class="form-control" id="publisher" name="publisher"
+                       placeholder="e.g. Pearson, O'Reilly, MIT Press"
+                       value="{% if is_edit %}{{ book.publisher or '' }}{% endif %}">
+              </div>
+
+              <!-- Publication Year & Total Quantity -->
+              <div class="col-md-6">
+                <label for="publication_year" class="form-label">Publication Year</label>
+                <input type="number" class="form-control" id="publication_year" name="publication_year"
+                       min="1500" max="2099" placeholder="e.g. 2023"
+                       value="{% if is_edit %}{{ book.publication_year or '' }}{% endif %}">
+              </div>
+
+              <div class="col-md-6">
+                <label for="total_qty" class="form-label">Total Copies in Inventory <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="total_qty" name="total_qty" min="1" max="1000" required
+                       value="{% if is_edit %}{{ book.total_qty }}{% else %}1{% endif %}">
+                {% if is_edit %}
+                <div class="form-text text-muted">
+                  Currently Available: <strong>{{ book.available_qty }}</strong> | Currently Issued: <strong>{{ book.total_qty - book.available_qty }}</strong>
+                </div>
+                {% endif %}
+              </div>
+
+              <!-- Buttons -->
+              <div class="col-12 mt-4 pt-2 border-top d-flex gap-2 justify-content-end">
+                <a href="{{ url_for('books') }}" class="btn btn-light px-4">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">
+                  <i class="bi bi-check2-circle me-1"></i> {% if is_edit %}Save Changes{% else %}Add Book to Catalog{% endif %}
+                </button>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

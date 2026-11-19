@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+
+{% block title %}Issue Book{% endblock %}
+{% block page_heading %}Issue Book to Student{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card-custom">
+        <div class="card-header bg-light">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-box-arrow-up-right text-primary fs-5"></i>
+            <span class="fw-bold">Book Circulation Checkout</span>
+          </div>
+          <span class="badge bg-primary-subtle text-primary border">14-Day Standard Loan Period</span>
+        </div>
+
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('issue_book') }}">
+            <div class="row g-3">
+              
+              <!-- Select Student -->
+              <div class="col-12">
+                <label for="student_id" class="form-label">Select Student Borrower <span class="text-danger">*</span></label>
+                <select class="form-select" id="student_id" name="student_id" required>
+                  <option value="" disabled {% if not pre_student_id %}selected{% endif %}>-- Choose Student --</option>
+                  {% for s in students %}
+                    <option value="{{ s.id }}" {% if pre_student_id|string == s.id|string %}selected{% endif %}>
+                      {{ s.name }} ({{ s.student_id }}) &bull; {{ s.department }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">Choose from registered students or <a href="{{ url_for('add_student') }}" class="text-primary">register a new student</a>.</div>
+              </div>
+
+              <!-- Select Available Book -->
+              <div class="col-12">
+                <label for="book_id" class="form-label">Select Available Book <span class="text-danger">*</span></label>
+                <select class="form-select" id="book_id" name="book_id" required>
+                  <option value="" disabled {% if not pre_book_id %}selected{% endif %}>-- Choose Book (In Stock) --</option>
+                  {% for b in books %}
+                    <option value="{{ b.id }}" {% if pre_book_id|string == b.id|string %}selected{% endif %}>
+                      {{ b.title }} by {{ b.author }} &bull; ISBN: {{ b.isbn }} (Available: {{ b.available_qty }})
+                    </option>
+                  {% endfor %}
+                </select>
+                <div class="form-text">Only books currently in stock are listed. Available quantity will automatically decrease by 1 upon issue.</div>
+              </div>
+
+              <!-- Issue Date -->
+              <div class="col-md-6">
+                <label for="issue_date" class="form-label">Issue Date <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-calendar-event"></i></span>
+                  <input type="date" class="form-control" id="issue_date" name="issue_date" value="{{ today }}" required>
+                </div>
+              </div>
+
+              <!-- Due Date (Auto-calculated 14 days) -->
+              <div class="col-md-6">
+                <label for="due_date" class="form-label">Due Date <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light"><i class="bi bi-calendar-check"></i></span>
+                  <input type="date" class="form-control" id="due_date" name="due_date" value="{{ default_due }}" required>
+                </div>
+                <div class="form-text text-primary"><i class="bi bi-info-circle me-1"></i>Automatically computed 14 days from issue date.</div>
+              </div>
+
+              <!-- Remarks / Notes -->
+              <div class="col-12">
+                <label for="remarks" class="form-label">Remarks / Purpose (Optional)</label>
+                <input type="text" class="form-control" id="remarks" name="remarks" placeholder="e.g. Semester coursework, Research project, Reference">
+              </div>
+
+              <!-- Policy Box -->
+              <div class="col-12">
+                <div class="alert alert-info py-2 px-3 small mb-0 d-flex align-items-center">
+                  <i class="bi bi-shield-exclamation me-2 fs-5"></i>
+                  <div>
+                    <strong>Library Circulation Policy:</strong> Books must be returned on or before the due date. A fine of <strong>₹5.00 per day</strong> applies for each day past due date.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Submit Buttons -->
+              <div class="col-12 mt-4 pt-2 border-top d-flex gap-2 justify-content-end">
+                <a href="{{ url_for('transactions') }}" class="btn btn-light px-4">Cancel</a>
+                <button type="submit" class="btn btn-primary px-4">
+                  <i class="bi bi-check2-circle me-1"></i> Confirm & Issue Book
+                </button>
+              </div>
+
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

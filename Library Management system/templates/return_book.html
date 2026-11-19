@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Return Books{% endblock %}
+{% block page_heading %}Process Book Returns & Fine Settlement{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Search & Filter Card -->
+  <div class="card-custom mb-4">
+    <div class="card-body p-3">
+      <form method="GET" action="{{ url_for('return_book') }}" class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-light text-muted"><i class="bi bi-search"></i></span>
+            <input type="text" name="search" class="form-control" placeholder="Search by student name, ID, book title or ISBN..." value="{{ search }}">
+          </div>
+        </div>
+        <div class="col-md-3">
+          <select name="status" class="form-select">
+            <option value="">All Active Loans</option>
+            <option value="issued" {% if status_filter == 'issued' %}selected{% endif %}>On-Time Loans Only</option>
+            <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue Loans Only</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+          <button type="submit" class="btn btn-primary btn-sm px-3">
+            <i class="bi bi-funnel me-1"></i> Filter
+          </button>
+          {% if search or status_filter %}
+          <a href="{{ url_for('return_book') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Active Loans Table -->
+  <div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-box-arrow-in-down-left text-primary"></i>
+        <span class="fw-bold">Active Issued Loans Pending Return ({{ active_issues|length }})</span>
+      </div>
+      <div>
+        <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="Instant filter table..." style="max-width: 200px;">
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-custom table-hover filterable-table align-middle">
+        <thead>
+          <tr>
+            <th>Issue ID</th>
+            <th>Book Title</th>
+            <th>Student Borrower</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Accumulated Fine</th>
+            <th class="text-end" style="width: 140px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if active_issues %}
+            {% for issue in active_issues %}
+            <tr>
+              <td class="text-muted fw-bold">#{{ issue.id }}</td>
+              <td>
+                <div class="fw-bold text-dark">{{ issue.book_title }}</div>
+                <small class="text-muted font-monospace">ISBN: {{ issue.isbn }}</small>
+              </td>
+              <td>
+                <div class="fw-medium text-dark">{{ issue.student_name }}</div>
+                <small class="text-muted">{{ issue.student_id }} &bull; {{ issue.department }}</small>
+              </td>
+              <td>{{ issue.issue_date }}</td>
+              <td>
+                <span class="fw-medium">{{ issue.due_date }}</span>
+              </td>
+              <td>
+                {% if issue.status == 'overdue' %}
+                  <span class="badge-custom badge-overdue"><i class="bi bi-alarm"></i> Overdue</span>
+                {% else %}
+                  <span class="badge-custom badge-issued"><i class="bi bi-check-circle"></i> Active</span>
+                {% endif %}
+              </td>
+              <td class="fw-bold {% if issue.fine_amount > 0 %}text-danger{% else %}text-muted{% endif %}">
+                {% if issue.fine_amount > 0 %}
+                  ₹{{ "%.2f"|format(issue.fine_amount) }}
+                {% else %}
+                  ₹0.00
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <button type="button" class="btn btn-primary btn-sm d-inline-flex align-items-center gap-1"
+                        data-bs-toggle="modal" data-bs-target="#returnModal"
+                        data-issue-id="{{ issue.id }}"
+                        data-book-title="{{ issue.book_title }}"
+                        data-student-name="{{ issue.student_name }}"
+                        data-due-date="{{ issue.due_date }}">
+                  <i class="bi bi-arrow-return-left"></i> Return Book
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center py-5 text-muted">
+                <i class="bi bi-check2-all fs-1 d-block mb-2 text-success"></i>
+                No active issued books found for return.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal for Return Book & Fine Processing -->
+<div class="modal fade" id="returnModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <form method="POST" action="{{ url_for('return_book') }}">
+        <div class="modal-header bg-light">
+          <h5 class="modal-title fw-bold text-dark">
+            <i class="bi bi-arrow-return-left text-primary me-2"></i>Process Book Return
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          <input type="hidden" name="issue_id" id="modal_issue_id">
+
+          <!-- Book & Student Details Info -->
+          <div class="card bg-light border-0 p-3 mb-3">
+            <div class="mb-2">
+              <span class="text-muted small d-block">Book Title</span>
+              <strong class="text-dark" id="modal_book_title">-</strong>
+            </div>
+            <div class="row g-2">
+              <div class="col-6">
+                <span class="text-muted small d-block">Borrower</span>
+                <span class="fw-semibold text-dark" id="modal_student_name">-</span>
+              </div>
+              <div class="col-6">
+                <span class="text-muted small d-block">Scheduled Due Date</span>
+                <span class="fw-semibold text-primary" id="modal_due_date">-</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Return Date Input -->
+          <div class="mb-3">
+            <label for="modal_return_date" class="form-label">Return Date <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="modal_return_date" name="return_date" value="{{ today }}" required>
+          </div>
+
+          <!-- Dynamic Fine Calculation Alert -->
+          <div id="modal_fine_badge" class="alert alert-secondary py-2 mb-3">
+            Calculating fine...
+          </div>
+
+          <div class="row g-2 mb-3 p-3 bg-light rounded-3 border">
+            <div class="col-6">
+              <span class="text-muted small">Late Days</span>
+              <div class="fw-bold fs-5" id="modal_late_days">0</div>
+            </div>
+            <div class="col-6">
+              <span class="text-muted small">Fine Due (₹5/day)</span>
+              <div class="fw-bold fs-5 text-danger" id="modal_fine_amount">₹0.00</div>
+            </div>
+          </div>
+
+          <!-- Fine Paid Status -->
+          <div class="mb-3">
+            <label class="form-label">Fine Settlement Status</label>
+            <select class="form-select" name="fine_paid">
+              <option value="1" selected>Fine Collected / Settled (or ₹0 Due)</option>
+              <option value="0">Fine Unpaid / Pending</option>
+            </select>
+          </div>
+
+          <!-- Remarks -->
+          <div class="mb-2">
+            <label for="return_remarks" class="form-label">Remarks / Condition of Book</label>
+            <input type="text" class="form-control" id="return_remarks" name="remarks" placeholder="e.g. Good condition, Fine collected in cash">
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm px-3">
+            <i class="bi bi-check2-circle me-1"></i> Complete Return
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Library Management System</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="auth-wrapper">
+  <div class="auth-card" style="max-width: 520px;">
+    <div class="auth-header py-3">
+      <div class="d-inline-flex p-2 rounded-circle bg-white text-primary mb-2 shadow-sm">
+        <i class="bi bi-person-plus-fill fs-3"></i>
+      </div>
+      <h4 class="fw-bold mb-1">Create an Account</h4>
+      <p class="text-white-50 small mb-0">Join the digital library management system</p>
+    </div>
+
+    <div class="auth-body p-4">
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show small py-2 mb-3" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('register') }}" method="POST">
+        <div class="row g-2 mb-3">
+          <div class="col-sm-6">
+            <label for="username" class="form-label">Username *</label>
+            <input type="text" class="form-control" id="username" name="username" placeholder="e.g. rahul101" required>
+          </div>
+          <div class="col-sm-6">
+            <label for="email" class="form-label">Email Address *</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="name@college.edu" required>
+          </div>
+        </div>
+
+        <div class="row g-2 mb-3">
+          <div class="col-sm-6">
+            <label for="password" class="form-label">Password *</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="Min 6 characters" minlength="6" required>
+          </div>
+          <div class="col-sm-6">
+            <label for="confirm_password" class="form-label">Confirm Password *</label>
+            <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Re-enter password" minlength="6" required>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Select Account Role</label>
+          <div class="d-flex gap-4">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="role" id="role_student" value="student" checked onchange="toggleStudentFields(true)">
+              <label class="form-check-label fw-semibold" for="role_student">
+                <i class="bi bi-mortarboard me-1 text-primary"></i> Student
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="role" id="role_admin" value="admin" onchange="toggleStudentFields(false)">
+              <label class="form-check-label fw-semibold" for="role_admin">
+                <i class="bi bi-shield-lock me-1 text-danger"></i> Administrator
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Details Section -->
+        <div id="studentDetailsSection" class="border rounded-3 p-3 bg-light mb-3">
+          <h6 class="fw-bold text-dark mb-2 small text-uppercase"><i class="bi bi-person-vcard me-1"></i> Student Info</h6>
+          <div class="row g-2">
+            <div class="col-sm-6 mb-2">
+              <label for="student_id" class="form-label small">Student ID (e.g. STU110)</label>
+              <input type="text" class="form-control form-control-sm" id="student_id" name="student_id" placeholder="STU110">
+            </div>
+            <div class="col-sm-6 mb-2">
+              <label for="name" class="form-label small">Full Name</label>
+              <input type="text" class="form-control form-control-sm" id="name" name="name" placeholder="John Doe">
+            </div>
+            <div class="col-sm-6 mb-2">
+              <label for="phone" class="form-label small">Phone Number</label>
+              <input type="text" class="form-control form-control-sm" id="phone" name="phone" placeholder="+91 9876543210">
+            </div>
+            <div class="col-sm-6 mb-2">
+              <label for="department" class="form-label small">Department</label>
+              <select class="form-select form-select-sm" id="department" name="department">
+                <option value="Computer Science">Computer Science</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                <option value="Civil Engineering">Civil Engineering</option>
+                <option value="Electronics & Comm.">Electronics & Comm.</option>
+                <option value="Business Administration">Business Administration</option>
+              </select>
+            </div>
+            <div class="col-12">
+              <label for="year" class="form-label small">Academic Year</label>
+              <select class="form-select form-select-sm" id="year" name="year">
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fs-6 mb-3">
+          <i class="bi bi-person-check me-2"></i> Register Account
+        </button>
+
+        <div class="text-center small text-muted">
+          Already registered? <a href="{{ url_for('login') }}" class="text-primary fw-semibold text-decoration-none">Sign in here</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleStudentFields(isStudent) {
+    const section = document.getElementById('studentDetailsSection');
+    if (section) {
+      section.style.display = isStudent ? 'block' : 'none';
+    }
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

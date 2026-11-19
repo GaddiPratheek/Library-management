@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Student Management{% endblock %}
+{% block page_heading %}Student Management & Records{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header Controls -->
+  <div class="card-custom mb-4">
+    <div class="card-body p-3">
+      <div class="row g-3 align-items-center">
+        <!-- Search and filters -->
+        <div class="col-lg-8">
+          <form method="GET" action="{{ url_for('students') }}" class="row g-2">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Search by name, student ID, email..." value="{{ search }}">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <select name="department" class="form-select">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                  <option value="{{ dept }}" {% if selected_department == dept %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-funnel me-1"></i> Filter
+              </button>
+              {% if search or selected_department %}
+              <a href="{{ url_for('students') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+
+        <!-- Add Student Button -->
+        <div class="col-lg-4 text-lg-end">
+          <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill me-1"></i> Add New Student
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Students Table Card -->
+  <div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-people text-primary"></i>
+        <span class="fw-bold">Enrolled Students ({{ students|length }})</span>
+      </div>
+      <div>
+        <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="Instant filter table..." style="max-width: 200px;">
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-custom table-hover filterable-table align-middle">
+        <thead>
+          <tr>
+            <th>Student ID</th>
+            <th>Name & Details</th>
+            <th>Contact</th>
+            <th>Department & Year</th>
+            <th>Active Loans</th>
+            <th class="text-end" style="width: 150px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if students %}
+            {% for s in students %}
+            <tr>
+              <td>
+                <span class="badge bg-primary-subtle text-primary border font-monospace fs-6 px-2 py-1">
+                  {{ s.student_id }}
+                </span>
+              </td>
+              <td>
+                <div class="fw-bold text-dark">{{ s.name }}</div>
+                <div class="small text-muted"><i class="bi bi-envelope me-1"></i>{{ s.email }}</div>
+              </td>
+              <td>
+                <span class="small text-dark"><i class="bi bi-telephone me-1 text-muted"></i>{{ s.phone }}</span>
+              </td>
+              <td>
+                <div class="fw-medium text-dark">{{ s.department }}</div>
+                <small class="text-muted">{{ s.year }}</small>
+              </td>
+              <td>
+                {% if s.active_books > 0 %}
+                  <span class="badge-custom badge-issued">
+                    <i class="bi bi-book"></i> {{ s.active_books }} Active
+                  </span>
+                  {% if s.overdue_books > 0 %}
+                    <span class="badge-custom badge-overdue ms-1">
+                      <i class="bi bi-alarm"></i> {{ s.overdue_books }} Overdue
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted small">No active books</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm">
+                  <!-- Issue Book directly to this student -->
+                  <a href="{{ url_for('issue_book', student_id=s.id) }}" class="btn btn-outline-success btn-icon" title="Issue Book to Student">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                  </a>
+
+                  <!-- View Student History & Profile -->
+                  <a href="{{ url_for('view_student', id=s.id) }}" class="btn btn-outline-info btn-icon" title="View Profile & Borrowing History">
+                    <i class="bi bi-eye"></i>
+                  </a>
+
+                  <!-- Edit -->
+                  <a href="{{ url_for('edit_student', id=s.id) }}" class="btn btn-outline-primary btn-icon" title="Edit Student">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+
+                  <!-- Delete -->
+                  <form action="{{ url_for('delete_student', id=s.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete student record for {{ s.name }} ({{ s.student_id }})?');">
+                    <button type="submit" class="btn btn-outline-danger btn-icon" title="Delete Student">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <i class="bi bi-person-x fs-1 d-block mb-2 text-secondary"></i>
+                No student records matched your search.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

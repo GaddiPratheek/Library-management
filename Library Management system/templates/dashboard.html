@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block page_heading %}Library Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Welcome Banner -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background: linear-gradient(120deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%); color: white;">
+        <div class="card-body p-4 p-md-5 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div>
+            <span class="badge bg-white text-primary mb-2 px-3 py-1 fw-bold">
+              <i class="bi bi-stars me-1 text-warning"></i> Library Portal Active
+            </span>
+            <h2 class="fw-bold mb-1">Welcome back, {{ current_user.username }}!</h2>
+            <p class="text-white-50 mb-0">Here is the real-time operational overview of book circulation, inventory, and students.</p>
+          </div>
+          {% if current_user.role == 'admin' %}
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('issue_book') }}" class="btn btn-light fw-semibold text-primary shadow-sm">
+              <i class="bi bi-box-arrow-up-right me-1"></i> Issue Book
+            </a>
+            <a href="{{ url_for('add_book') }}" class="btn btn-outline-light fw-semibold">
+              <i class="bi bi-plus-circle me-1"></i> Add New Book
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Statistics Cards -->
+  <div class="row g-3 mb-4">
+    <!-- Total Books -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card primary">
+        <div>
+          <div class="stat-label">Total Inventory</div>
+          <div class="stat-value text-primary">{{ total_books }}</div>
+          <small class="text-muted"><i class="bi bi-book me-1"></i>Total book copies</small>
+        </div>
+        <div class="stat-icon primary">
+          <i class="bi bi-journals"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Available Books -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card success">
+        <div>
+          <div class="stat-label">Available Books</div>
+          <div class="stat-value text-success">{{ available_books }}</div>
+          <small class="text-muted"><i class="bi bi-check-circle me-1"></i>Ready on shelves</small>
+        </div>
+        <div class="stat-icon success">
+          <i class="bi bi-bookmark-check-fill"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Issued Books -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card info">
+        <div>
+          <div class="stat-label">Currently Issued</div>
+          <div class="stat-value text-info">{{ issued_books }}</div>
+          <small class="text-muted"><i class="bi bi-arrow-repeat me-1"></i>In circulation</small>
+        </div>
+        <div class="stat-icon info">
+          <i class="bi bi-arrow-up-right-circle-fill"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overdue Books -->
+    <div class="col-sm-6 col-xl-3">
+      <div class="stat-card danger">
+        <div>
+          <div class="stat-label">Overdue Books</div>
+          <div class="stat-value text-danger">{{ overdue_books }}</div>
+          <small class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Requires return</small>
+        </div>
+        <div class="stat-icon danger">
+          <i class="bi bi-alarm-fill"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Second Row Statistics for Admin (Total Students & Fines) -->
+  {% if current_user.role == 'admin' %}
+  <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-4">
+      <div class="stat-card info">
+        <div>
+          <div class="stat-label">Enrolled Students</div>
+          <div class="stat-value">{{ total_students }}</div>
+          <small class="text-muted"><i class="bi bi-people me-1"></i>Registered borrowers</small>
+        </div>
+        <div class="stat-icon info">
+          <i class="bi bi-person-lines-fill"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+      <div class="stat-card warning">
+        <div>
+          <div class="stat-label">Pending Fines</div>
+          <div class="stat-value text-warning">₹{{ "%.2f"|format(fines_pending) }}</div>
+          <small class="text-muted"><i class="bi bi-hourglass-split me-1"></i>Uncollected late fees</small>
+        </div>
+        <div class="stat-icon warning">
+          <i class="bi bi-cash-stack"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+      <div class="stat-card success">
+        <div>
+          <div class="stat-label">Fines Settled</div>
+          <div class="stat-value text-success">₹{{ "%.2f"|format(fines_collected) }}</div>
+          <small class="text-muted"><i class="bi bi-check2-all me-1"></i>Total collected fine</small>
+        </div>
+        <div class="stat-icon success">
+          <i class="bi bi-wallet2"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <!-- Student Personalized Stat Highlights -->
+  <div class="row g-3 mb-4">
+    <div class="col-sm-4">
+      <div class="stat-card primary">
+        <div>
+          <div class="stat-label">My Active Books</div>
+          <div class="stat-value">{{ student_stats.get('active_borrowed', 0) }}</div>
+          <small class="text-muted">Currently in your possession</small>
+        </div>
+        <div class="stat-icon primary"><i class="bi bi-book"></i></div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="stat-card danger">
+        <div>
+          <div class="stat-label">My Overdue Books</div>
+          <div class="stat-value text-danger">{{ student_stats.get('overdue_count', 0) }}</div>
+          <small class="text-muted">Return to prevent fine</small>
+        </div>
+        <div class="stat-icon danger"><i class="bi bi-clock-history"></i></div>
+      </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="stat-card warning">
+        <div>
+          <div class="stat-label">My Accumulated Fine</div>
+          <div class="stat-value text-warning">₹{{ "%.2f"|format(student_stats.get('pending_fines', 0.0)) }}</div>
+          <small class="text-muted">At ₹5.00 / day</small>
+        </div>
+        <div class="stat-icon warning"><i class="bi bi-currency-rupee"></i></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Charts & Graphs Section -->
+  <div class="row g-4 mb-4">
+    <!-- Category Distribution Doughnut Chart -->
+    <div class="col-lg-6">
+      <div class="card-custom h-100">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-pie-chart-fill text-primary"></i>
+            <span class="fw-bold">Book Distribution by Category</span>
+          </div>
+          <a href="{{ url_for('books') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+        </div>
+        <div class="card-body d-flex flex-column justify-content-center align-items-center" style="min-height: 280px;">
+          <canvas id="categoryChart" style="max-height: 250px;"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Circulation Status Bar Chart -->
+    <div class="col-lg-6">
+      <div class="card-custom h-100">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-bar-chart-fill text-info"></i>
+            <span class="fw-bold">Circulation Status Overview</span>
+          </div>
+          <span class="badge bg-light text-dark border">Real-time Stock</span>
+        </div>
+        <div class="card-body d-flex flex-column justify-content-center align-items-center" style="min-height: 280px;">
+          <canvas id="statusChart" style="max-height: 250px;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overdue Books Alert List (Admin only) -->
+  {% if current_user.role == 'admin' and overdue_alerts %}
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card-custom border-danger">
+        <div class="card-header bg-danger-subtle text-danger">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+            <span class="fw-bold">Attention Required: Overdue Books</span>
+          </div>
+          <a href="{{ url_for('return_book', status='overdue') }}" class="btn btn-danger btn-sm">Process Returns</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Book Title</th>
+                <th>Student</th>
+                <th>Due Date</th>
+                <th>Accumulated Fine</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in overdue_alerts %}
+              <tr>
+                <td class="fw-semibold text-dark">{{ item.book_title }}</td>
+                <td>
+                  <div>{{ item.student_name }}</div>
+                  <small class="text-muted">{{ item.student_id }} &bull; {{ item.phone }}</small>
+                </td>
+                <td><span class="badge bg-danger">{{ item.due_date }}</span></td>
+                <td class="fw-bold text-danger">₹{{ "%.2f"|format(item.fine_amount) }}</td>
+                <td>
+                  <a href="{{ url_for('return_book') }}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-arrow-return-left me-1"></i> Return
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Recent Transactions Table -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card-custom">
+        <div class="card-header">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-secondary"></i>
+            <span class="fw-bold">Recent Issue & Return Activities</span>
+          </div>
+          <a href="{{ url_for('transactions') }}" class="btn btn-sm btn-outline-primary">View Full History</a>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Book Details</th>
+                <th>Student</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Fine</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if recent_transactions %}
+                {% for txn in recent_transactions %}
+                <tr>
+                  <td class="text-muted fw-bold">#{{ txn.id }}</td>
+                  <td>
+                    <div class="fw-semibold text-dark">{{ txn.book_title }}</div>
+                    <small class="text-muted">ISBN: {{ txn.isbn }}</small>
+                  </td>
+                  <td>
+                    <div class="fw-medium">{{ txn.student_name }}</div>
+                    <small class="text-muted">{{ txn.student_id }}</small>
+                  </td>
+                  <td>{{ txn.issue_date }}</td>
+                  <td>{{ txn.due_date }}</td>
+                  <td>
+                    {% if txn.status == 'returned' %}
+                      <span class="badge-custom badge-returned"><i class="bi bi-check-circle"></i> Returned</span>
+                    {% elif txn.status == 'overdue' %}
+                      <span class="badge-custom badge-overdue"><i class="bi bi-alarm"></i> Overdue</span>
+                    {% else %}
+                      <span class="badge-custom badge-issued"><i class="bi bi-clock"></i> Issued</span>
+                    {% endif %}
+                  </td>
+                  <td class="fw-semibold {% if txn.fine_amount > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {% if txn.fine_amount > 0 %}
+                      ₹{{ "%.2f"|format(txn.fine_amount) }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="7" class="text-center py-4 text-muted">No circulation records found yet.</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // 1. Category Chart
+  const categoryLabels = {{ category_chart_data|map(attribute='category')|list|tojson }};
+  const categoryCounts = {{ category_chart_data|map(attribute='count')|list|tojson }};
+
+  const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+  new Chart(ctxCategory, {
+    type: 'doughnut',
+    data: {
+      labels: categoryLabels.length ? categoryLabels : ['General'],
+      datasets: [{
+        data: categoryCounts.length ? categoryCounts : [1],
+        backgroundColor: [
+          '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'
+        ],
+        borderWidth: 2,
+        borderColor: '#ffffff'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { boxWidth: 14, font: { family: 'Plus Jakarta Sans', size: 12 } }
+        }
+      },
+      cutout: '65%'
+    }
+  });
+
+  // 2. Circulation Status Overview Chart
+  const ctxStatus = document.getElementById('statusChart').getContext('2d');
+  new Chart(ctxStatus, {
+    type: 'bar',
+    data: {
+      labels: ['Available on Shelf', 'Currently Issued', 'Overdue'],
+      datasets: [{
+        label: 'Copies',
+        data: [{{ available_books }}, {{ issued_books }}, {{ overdue_books }}],
+        backgroundColor: ['#10b981', '#4f46e5', '#ef4444'],
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1, font: { family: 'Plus Jakarta Sans' } },
+          grid: { color: '#f1f5f9' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { family: 'Plus Jakarta Sans', weight: '500' } }
+        }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+</script>
+{% endblock %}

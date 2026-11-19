@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile: {{ student.name }}{% endblock %}
+{% block page_heading %}Student Profile & Borrowing History{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Student Info Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card-custom">
+        <div class="card-body p-4">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+              <div class="avatar-circle" style="width: 64px; height: 64px; font-size: 1.75rem; background: #e0e7ff; color: #4338ca; border: none;">
+                {{ student.name[:1].upper() }}
+              </div>
+              <div>
+                <h3 class="fw-bold text-dark mb-1">{{ student.name }}</h3>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                  <span class="badge bg-primary fs-6">{{ student.student_id }}</span>
+                  <span class="text-muted">&bull;</span>
+                  <span class="text-dark fw-medium">{{ student.department }} ({{ student.year }})</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-3">
+              <div class="border rounded-3 px-3 py-2 bg-light">
+                <span class="text-muted small d-block">Email</span>
+                <span class="fw-semibold text-dark"><i class="bi bi-envelope me-1 text-primary"></i>{{ student.email }}</span>
+              </div>
+              <div class="border rounded-3 px-3 py-2 bg-light">
+                <span class="text-muted small d-block">Phone</span>
+                <span class="fw-semibold text-dark"><i class="bi bi-telephone me-1 text-primary"></i>{{ student.phone }}</span>
+              </div>
+              {% if current_user.role == 'admin' %}
+              <div class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('issue_book', student_id=student.id) }}" class="btn btn-primary btn-sm">
+                  <i class="bi bi-box-arrow-up-right me-1"></i> Issue Book
+                </a>
+                <a href="{{ url_for('edit_student', id=student.id) }}" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-pencil me-1"></i> Edit
+                </a>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Borrowing History -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card-custom">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-clock-history text-primary"></i>
+            <span class="fw-bold">Borrowing & Circulation History ({{ history|length }} transactions)</span>
+          </div>
+          {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('students') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Students
+          </a>
+          {% endif %}
+        </div>
+        <div class="table-responsive">
+          <table class="table table-custom table-hover align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Issue ID</th>
+                <th>Book Title & ISBN</th>
+                <th>Category</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Return Date</th>
+                <th>Status</th>
+                <th>Fine</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if history %}
+                {% for item in history %}
+                <tr>
+                  <td class="text-muted fw-bold">#{{ item.id }}</td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ item.book_title }}</div>
+                    <small class="text-muted font-monospace">{{ item.isbn }}</small>
+                  </td>
+                  <td><span class="badge bg-light text-dark border">{{ item.category }}</span></td>
+                  <td>{{ item.issue_date }}</td>
+                  <td>{{ item.due_date }}</td>
+                  <td>{{ item.return_date or '-' }}</td>
+                  <td>
+                    {% if item.status == 'returned' %}
+                      <span class="badge-custom badge-returned"><i class="bi bi-check-circle"></i> Returned</span>
+                    {% elif item.status == 'overdue' %}
+                      <span class="badge-custom badge-overdue"><i class="bi bi-alarm"></i> Overdue</span>
+                    {% else %}
+                      <span class="badge-custom badge-issued"><i class="bi bi-clock"></i> Active Issue</span>
+                    {% endif %}
+                  </td>
+                  <td class="fw-semibold {% if item.fine_amount > 0 %}text-danger{% else %}text-muted{% endif %}">
+                    {% if item.fine_amount > 0 %}
+                      ₹{{ "%.2f"|format(item.fine_amount) }}
+                    {% else %}
+                      -
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="8" class="text-center py-5 text-muted">
+                    No borrowing records found for this student.
+                  </td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

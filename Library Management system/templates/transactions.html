@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions Log{% endblock %}
+{% block page_heading %}Circulation Transaction History{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+  <!-- Header Controls & Filters -->
+  <div class="card-custom mb-4">
+    <div class="card-body p-3">
+      <div class="row g-3 align-items-center">
+        <div class="col-lg-8">
+          <form method="GET" action="{{ url_for('transactions') }}" class="row g-2">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text bg-light text-muted"><i class="bi bi-search"></i></span>
+                <input type="text" name="search" class="form-control" placeholder="Search by student name, ID, book title..." value="{{ search }}">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <select name="status" class="form-select">
+                <option value="">All Transactions</option>
+                <option value="issued" {% if status_filter == 'issued' %}selected{% endif %}>Active / Issued</option>
+                <option value="returned" {% if status_filter == 'returned' %}selected{% endif %}>Returned</option>
+                <option value="overdue" {% if status_filter == 'overdue' %}selected{% endif %}>Overdue</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+              <button type="submit" class="btn btn-primary btn-sm w-100">
+                <i class="bi bi-funnel me-1"></i> Filter
+              </button>
+              {% if search or status_filter %}
+              <a href="{{ url_for('transactions') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+
+        <div class="col-lg-4 text-lg-end">
+          {% if current_user.role == 'admin' %}
+          <div class="btn-group">
+            <a href="{{ url_for('issue_book') }}" class="btn btn-primary">
+              <i class="bi bi-plus-lg me-1"></i> Issue Book
+            </a>
+            <a href="{{ url_for('export_csv', report_type='transactions') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-download me-1"></i> Export CSV
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Tabs -->
+  <div class="mb-3 d-flex gap-2">
+    <a href="{{ url_for('transactions') }}" class="btn btn-sm {% if not status_filter %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+      All History
+    </a>
+    <a href="{{ url_for('transactions', status='issued') }}" class="btn btn-sm {% if status_filter == 'issued' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+      Active Issues
+    </a>
+    <a href="{{ url_for('transactions', status='overdue') }}" class="btn btn-sm {% if status_filter == 'overdue' %}btn-danger{% else %}btn-outline-danger{% endif %}">
+      Overdue Issues
+    </a>
+    <a href="{{ url_for('transactions', status='returned') }}" class="btn btn-sm {% if status_filter == 'returned' %}btn-success{% else %}btn-outline-success{% endif %}">
+      Returned Books
+    </a>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="card-custom">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-receipt-cutoff text-primary"></i>
+        <span class="fw-bold">Transaction Records ({{ transactions|length }})</span>
+      </div>
+      <div>
+        <input type="text" id="tableSearchInput" class="form-control form-control-sm" placeholder="Instant filter table..." style="max-width: 200px;">
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-custom table-hover filterable-table align-middle">
+        <thead>
+          <tr>
+            <th style="width: 70px;">Txn ID</th>
+            <th>Book Title</th>
+            <th>Borrower</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+            <th>Late Fine</th>
+            {% if current_user.role == 'admin' %}
+            <th class="text-end">Action</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% if transactions %}
+            {% for txn in transactions %}
+            <tr>
+              <td class="text-muted fw-bold">#{{ txn.id }}</td>
+              <td>
+                <div class="fw-bold text-dark">{{ txn.book_title }}</div>
+                <small class="text-muted font-monospace">ISBN: {{ txn.isbn }} &bull; {{ txn.category }}</small>
+              </td>
+              <td>
+                <div class="fw-medium text-dark">{{ txn.student_name }}</div>
+                <small class="text-muted">{{ txn.student_id }} &bull; {{ txn.department }}</small>
+              </td>
+              <td>{{ txn.issue_date }}</td>
+              <td>
+                <span class="fw-medium {% if txn.status == 'overdue' %}text-danger{% endif %}">{{ txn.due_date }}</span>
+              </td>
+              <td>
+                {% if txn.return_date %}
+                  <span class="text-success"><i class="bi bi-check2 me-1"></i>{{ txn.return_date }}</span>
+                {% else %}
+                  <span class="text-muted italic small">Pending return</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if txn.status == 'returned' %}
+                  <span class="badge-custom badge-returned"><i class="bi bi-check-circle"></i> Returned</span>
+                {% elif txn.status == 'overdue' %}
+                  <span class="badge-custom badge-overdue"><i class="bi bi-alarm"></i> Overdue</span>
+                {% else %}
+                  <span class="badge-custom badge-issued"><i class="bi bi-clock"></i> Active Issue</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if txn.fine_amount > 0 %}
+                  <div class="fw-bold text-danger">₹{{ "%.2f"|format(txn.fine_amount) }}</div>
+                  {% if txn.status == 'returned' %}
+                    <span class="badge bg-success-subtle text-success border small" style="font-size: 0.7rem;">Settled</span>
+                  {% else %}
+                    <span class="badge bg-danger-subtle text-danger border small" style="font-size: 0.7rem;">Unpaid</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted small">₹0.00</span>
+                {% endif %}
+              </td>
+              {% if current_user.role == 'admin' %}
+              <td class="text-end">
+                {% if txn.status in ['issued', 'overdue'] %}
+                <a href="{{ url_for('return_book') }}" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-arrow-return-left me-1"></i> Return
+                </a>
+                {% else %}
+                <span class="text-muted small"><i class="bi bi-check-all text-success"></i> Completed</span>
+                {% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center py-5 text-muted">
+                <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary"></i>
+                No circulation records matched your filter.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
